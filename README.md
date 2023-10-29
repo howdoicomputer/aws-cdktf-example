@@ -24,6 +24,16 @@ Example:
     });
 ```
 
+## Getting Started
+
+The dev environment uses [devenv](https://devenv.sh/getting-started/#installation) to manage dependencies. If you're using devenv you can `cd` into the this project and get a Nix powered development environment.
+
+Otherwise, you will need:
+
+* Node/JavaScript/TypeScript/yarn
+* Terraform
+* awscli that is setup to use an AWS account
+
 ## EKS Makeup
 
 * Karpenter - the ability to autoscale the EKS cluster for unschedudulable resources
