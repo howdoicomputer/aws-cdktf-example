@@ -1,0 +1,13 @@
+{
+  "language": "typescript",
+  "app": "npx ts-node main.ts",
+  "projectId": "30757798-f725-4911-93f3-408b04e39e77",
+  "sendCrashReports": "false",
+  "terraformProviders": ["aws@~>5.0", "kubernetes@~>2.23.0", "helm@~>2.11.0"],
+  "terraformModules": [
+    "terraform-aws-modules/vpc/aws@ ~> 5.1.2",
+    "terraform-aws-modules/eks/aws@ ~> 19.17.2",
+    "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks@ ~> 5.30.0"
+  ],
+  "context": {}
+}
