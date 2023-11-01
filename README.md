@@ -2,6 +2,19 @@
 
 This project is a very simple reference architecture in AWS using the TypeScript version of [cdktf](https://github.com/hashicorp/terraform-cdk).
 
+## In Progresss
+
+This repository is in progress. It's meant to serve as a reference/playground.
+
+Technologies:
+
+* cdktf TypeScript
+* EKS/Kubernetes
+* ArgoCD
+* Helm
+* devenv
+* Karpenter
+
 ## Environment
 
 Within this reference, an environment is a logical construct that exists as a VPC with an EKS cluster within it. The cidrs are for the VPCs are `/16` and each subnet is a `/24` with three private subnets and three public subnets. Each subnet public/private pair corresponds to an availability zone. The private subnets are where k8s worker nodes are deployed to and the public subnets are where load balancers live.
@@ -24,6 +37,16 @@ Example:
     });
 ```
 
+## TODO
+
+[x] - VPC/NAT Gateway/IG
+[x] - EKS cluster
+[] - Split components into cdktf stacks
+[] - ArgoCD installation
+[] - Karpenter installation
+[] - Separate Helm/manifest repo for target app
+[] - Use Terraform Cloud as state backend
+
 ## Getting Started
 
 The dev environment uses [devenv](https://devenv.sh/getting-started/#installation) to manage dependencies. If you're using devenv you can `cd` into the this project and get a Nix powered development environment.
@@ -33,6 +56,11 @@ Otherwise, you will need:
 * Node/JavaScript/TypeScript/yarn
 * Terraform
 * awscli that is setup to use an AWS account
+* kubectl
+
+The environment and other components are separate cdktf [stacks](https://developer.hashicorp.com/terraform/cdktf/concepts/stacks).
+
+Due to the nature of the dependencies, you will need to bootstrap an environment with `cdktf deploy --`
 
 ## EKS Makeup
 

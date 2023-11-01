@@ -4,7 +4,6 @@ import { Eks } from "../.gen/modules/terraform-aws-modules/aws/eks";
 import { Vpc } from "../.gen/modules/terraform-aws-modules/aws/vpc";
 import { DataAwsAvailabilityZones } from "../.gen/providers/aws/data-aws-availability-zones";
 import { DataAwsEksClusterAuth } from "../.gen/providers/aws/data-aws-eks-cluster-auth";
-import { HelmProvider } from "../.gen/providers/helm/provider";
 
 interface EnvironmentOptions {
   env: "development" | "staging" | "production";
@@ -16,7 +15,7 @@ interface EnvironmentOptions {
   enableDnsHostnames: boolean;
 }
 
-export class Environment extends Construct {
+export class Environment extends TerraformStack {
   public vpc: Vpc;
   public eks: Eks;
   public eksAuth: DataAwsEksClusterAuth;
