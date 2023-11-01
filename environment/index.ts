@@ -15,7 +15,7 @@ interface EnvironmentOptions {
   enableDnsHostnames: boolean;
 }
 
-export class Environment extends TerraformStack {
+export class Environment extends Construct {
   public vpc: Vpc;
   public eks: Eks;
   public eksAuth: DataAwsEksClusterAuth;

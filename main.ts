@@ -1,4 +1,4 @@
-import { App, Fn, LocalBackend, TerraformStack } from "cdktf";
+import { App, Fn, RemoteBackend, TerraformStack } from "cdktf";
 import { Construct } from "constructs";
 import { AwsProvider } from "./.gen/providers/aws/provider";
 import { Deployment } from "./.gen/providers/kubernetes/deployment";
@@ -7,7 +7,7 @@ import { KubernetesProvider } from "./.gen/providers/kubernetes/provider";
 import { Service } from "./.gen/providers/kubernetes/service";
 import { Environment } from "./environment";
 
-class EnvironmentStack extends TerraformStack {
+class DevEnvironmentStack extends TerraformStack {
   constructor(scope: Construct, name: string) {
     super(scope, name);
     new AwsProvider(this, "aws", { region: "us-west-2" });
@@ -21,26 +21,6 @@ class EnvironmentStack extends TerraformStack {
       singleNatGateway: true,
       enableDnsHostnames: true,
     });
-
-    // new Environment(this, "staging", {
-    //   env: "staging",
-    //   cidr: "10.2.0.0/16",
-    //   privateSubnets: ["10.2.1.0/24", "10.2.2.0/24", "10.2.3.0/24"],
-    //   publicSubnets: ["10.2.4.0/24", "10.2.5.0/24", "10.2.6.0/24"],
-    //   enableNatGateway: true,
-    //   singleNatGateway: true,
-    //   enableDnsHostnames: true,
-    // });
-
-    // new Environment(this, "production", {
-    //   env: "production",
-    //   cidr: "10.3.0.0/16",
-    //   privateSubnets: ["10.3.1.0/24", "10.3.2.0/24", "10.3.3.0/24"],
-    //   publicSubnets: ["10.3.4.0/24", "10.3.5.0/24", "10.3.6.0/24"],
-    //   enableNatGateway: true,
-    //   singleNatGateway: true,
-    //   enableDnsHostnames: true,
-    // });
 
     new KubernetesProvider(this, "cluster", {
       host: dev.eks.clusterEndpointOutput,
@@ -116,9 +96,49 @@ class EnvironmentStack extends TerraformStack {
   }
 }
 
-const app = new App();
-const stack = new EnvironmentStack(app, "aws-cdktf-example");
+class StageEnvironmentStack extends TerraformStack {
+  constructor(scope: Construct, name: string) {
+    super(scope, name);
+    new AwsProvider(this, "aws", { region: "us-west-2" });
 
-new LocalBackend(stack, {});
+    new Environment(this, "staging", {
+      env: "staging",
+      cidr: "10.2.0.0/16",
+      privateSubnets: ["10.2.1.0/24", "10.2.2.0/24", "10.2.3.0/24"],
+      publicSubnets: ["10.2.4.0/24", "10.2.5.0/24", "10.2.6.0/24"],
+      enableNatGateway: true,
+      singleNatGateway: true,
+      enableDnsHostnames: true,
+    });
+  }
+}
+
+class ProdEnvironmentStack extends TerraformStack {
+  constructor(scope: Construct, name: string) {
+    super(scope, name);
+    new AwsProvider(this, "aws", { region: "us-west-2" });
+
+    new Environment(this, "production", {
+      env: "production",
+      cidr: "10.3.0.0/16",
+      privateSubnets: ["10.3.1.0/24", "10.3.2.0/24", "10.3.3.0/24"],
+      publicSubnets: ["10.3.4.0/24", "10.3.5.0/24", "10.3.6.0/24"],
+      enableNatGateway: true,
+      singleNatGateway: true,
+      enableDnsHostnames: true,
+    });
+  }
+}
+
+const app = new App();
+const stack = new DevEnvironmentStack(app, "aws-cdktf-example");
+
+new RemoteBackend(stack, {
+  hostname: "app.terraform.io",
+  organization: "howdoicomputer",
+  workspaces: {
+    name: "default",
+  },
+});
 
 app.synth();
