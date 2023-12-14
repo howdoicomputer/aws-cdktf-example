@@ -1,10 +1,9 @@
 import { App, Fn, RemoteBackend, TerraformStack } from "cdktf";
 import { Construct } from "constructs";
 import { AwsProvider } from "./.gen/providers/aws/provider";
-import { Deployment } from "./.gen/providers/kubernetes/deployment";
-import { Namespace } from "./.gen/providers/kubernetes/namespace";
+import { HelmProvider } from "./.gen/providers/helm/provider";
+import { KubectlProvider } from "./.gen/providers/kubectl/provider";
 import { KubernetesProvider } from "./.gen/providers/kubernetes/provider";
-import { Service } from "./.gen/providers/kubernetes/service";
 import { Environment } from "./environment";
 
 class DevEnvironmentStack extends TerraformStack {
@@ -30,68 +29,23 @@ class DevEnvironmentStack extends TerraformStack {
       token: dev.eksAuth.token,
     });
 
-    const ns = new Namespace(this, "tf-cdk-example", {
-      metadata: {
-        name: "application",
+    new HelmProvider(this, "helm", {
+      kubernetes: {
+        host: dev.eks.clusterEndpointOutput,
+        clusterCaCertificate: Fn.base64decode(
+          dev.eks.clusterCertificateAuthorityDataOutput
+        ),
+        token: dev.eksAuth.token,
       },
     });
 
-    const app = "nginx";
-    const nginx = new Deployment(this, "nginx-deployment", {
-      metadata: {
-        name: app,
-        namespace: ns.metadata.name,
-        labels: {
-          app,
-        },
-      },
-      spec: {
-        replicas: "1",
-        selector: {
-          matchLabels: {
-            app,
-          },
-        },
-        template: {
-          metadata: {
-            labels: {
-              app,
-            },
-          },
-          spec: {
-            container: [
-              {
-                image: "nginx:1.7.8",
-                name: "example",
-                port: [
-                  {
-                    containerPort: 80,
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      },
-    });
-
-    new Service(this, "nginx-service", {
-      metadata: {
-        namespace: nginx.metadata.namespace,
-        name: "nginx-service",
-      },
-      spec: {
-        selector: {
-          app,
-        },
-        port: [
-          {
-            port: 80,
-            targetPort: "80",
-          },
-        ],
-        type: "NodePort",
-      },
+    new KubectlProvider(this, "kubectl", {
+      host: dev.eks.clusterEndpointOutput,
+      clusterCaCertificate: Fn.base64decode(
+        dev.eks.clusterCertificateAuthorityDataOutput
+      ),
+      token: dev.eksAuth.token,
+      loadConfigFile: true,
     });
   }
 }
@@ -131,7 +85,10 @@ class ProdEnvironmentStack extends TerraformStack {
 }
 
 const app = new App();
-const stack = new DevEnvironmentStack(app, "aws-cdktf-example");
+
+// Only deploy the dev environment because expensive!
+//
+const stack = new DevEnvironmentStack(app, "polarstomps-dev");
 
 new RemoteBackend(stack, {
   hostname: "app.terraform.io",
