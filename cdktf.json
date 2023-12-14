@@ -7,7 +7,8 @@
     "aws@~>5.0",
     "kubernetes@~>2.23.0",
     "helm@~>2.11.0",
-    "alekc/kubectl@~>2.0.3"
+    "alekc/kubectl@~>2.0.3",
+    "cyrilgdn/postgresql@~>1.21.0"
   ],
   "terraformModules": [
     "terraform-aws-modules/vpc/aws@ ~> 5.1.2",

@@ -1,4 +1,4 @@
-import { Fn } from "cdktf";
+import { Fn, TerraformOutput } from "cdktf";
 import { Construct } from "constructs";
 import { EksLbController } from "../.gen/modules/DNXLabs/aws/eks-lb-controller";
 import { Eks } from "../.gen/modules/terraform-aws-modules/aws/eks";
@@ -7,6 +7,9 @@ import { IamRoleForServiceAccountsEks } from "../.gen/modules/terraform-aws-modu
 import { Vpc } from "../.gen/modules/terraform-aws-modules/aws/vpc";
 import { DataAwsAvailabilityZones } from "../.gen/providers/aws/data-aws-availability-zones";
 import { DataAwsEksClusterAuth } from "../.gen/providers/aws/data-aws-eks-cluster-auth";
+import { SecurityGroup } from "../.gen/providers/aws/security-group";
+import { VpcSecurityGroupEgressRule } from "../.gen/providers/aws/vpc-security-group-egress-rule";
+import { VpcSecurityGroupIngressRule } from "../.gen/providers/aws/vpc-security-group-ingress-rule";
 import { Release } from "../.gen/providers/helm/release";
 import { Manifest } from "../.gen/providers/kubectl/manifest";
 
@@ -24,6 +27,7 @@ export class Environment extends Construct {
   public vpc: Vpc;
   public eks: Eks;
   public eksAuth: DataAwsEksClusterAuth;
+  public mainSg: SecurityGroup;
 
   constructor(scope: Construct, name: string, options: EnvironmentOptions) {
     super(scope, name);
@@ -43,6 +47,10 @@ export class Environment extends Construct {
       enableNatGateway: options.enableNatGateway,
       singleNatGateway: options.singleNatGateway,
       enableDnsHostnames: options.enableDnsHostnames,
+      enableDnsSupport: true,
+      createDatabaseSubnetGroup: true,
+      createDatabaseSubnetRouteTable: true,
+      createDatabaseInternetGatewayRoute: true,
 
       tags: {
         ["env"]: options.env,
@@ -62,6 +70,7 @@ export class Environment extends Construct {
       clusterEndpointPublicAccess: true,
       clusterEndpointPublicAccessCidrs: ["76.132.5.161/32"],
       createCniIpv6IamPolicy: true,
+      enableIrsa: true,
       subnetIds: Fn.tolist(this.vpc.privateSubnetsOutput),
       vpcId: this.vpc.vpcIdOutput,
       manageAwsAuthConfigmap: true,
@@ -70,9 +79,15 @@ export class Environment extends Construct {
       },
       awsAuthRoles: [
         {
-          rolearn: karpenter.roleArnOutput
-        }
-      ]
+          // This is hardcoded due to a cdktf bug around Terraform modules that mutually refer to
+          // each other.
+          //
+          rolearn:
+            "arn:aws:iam::073789771344:role/Karpenter-development-20231214185638088600000007",
+          username: "system:node:{{EC2PrivateDNSName}}",
+          groups: ["system:bootstrappers", "system:nodes"],
+        },
+      ],
       nodeSecurityGroupTags: {
         "karpenter.sh/discovery": options.env,
       },
@@ -108,6 +123,41 @@ export class Environment extends Construct {
       tags: {
         environment: options.env,
       },
+    });
+
+    this.mainSg = new SecurityGroup(this, "main_sg", {
+      name: "home",
+      description: "home",
+      vpcId: this.vpc.vpcIdOutput,
+    });
+
+    new VpcSecurityGroupEgressRule(this, "main_sg_egress", {
+      securityGroupId: this.mainSg.id,
+      cidrIpv4: "0.0.0.0/0",
+      ipProtocol: "-1",
+    });
+
+    new VpcSecurityGroupIngressRule(this, "main_sg_ingress", {
+      securityGroupId: this.mainSg.id,
+      cidrIpv4: "76.132.5.161/32",
+      ipProtocol: "-1",
+    });
+
+    const karpenter = new Karpenter(this, "karpenter", {
+      clusterName: this.eks.clusterName,
+      irsaOidcProviderArn: this.eks.oidcProviderArnOutput,
+      enableKarpenterInstanceProfileCreation: true,
+      iamRoleAdditionalPolicies: {
+        AmazonSSMManagedInstanceCore:
+          "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+      },
+      tags: {
+        Environment: options.env,
+      },
+    });
+
+    new TerraformOutput(this, "karpenter_role_arn_output", {
+      value: karpenter.roleArnOutput,
     });
 
     const helmKarpenter = new Release(this, "karpenter_helm", {

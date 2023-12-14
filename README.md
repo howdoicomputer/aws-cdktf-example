@@ -70,10 +70,37 @@ In order to watch and/or debug autoscaling events:
 kubectl logs -f -n karpenter -l app.kubernetes.io/name=karpenter -c controller
 ```
 
-If autoscaling is working, you'll see events like:
+If autoscaling is working, you'll see events like this:
 
 ``` sh
 {"level":"INFO","time":"2023-12-14T08:24:51.212Z","logger":"controller.nodeclaim.lifecycle","message":"launched nodeclaim","commit":"5eda5c1","nodeclaim":"default-xbbj9","nodepool":"default","provider-id":"aws:///us-west-2b/i-001dcff2ad199d02d","instance-type":"t3.medium","zone":"us-west-2b","capacity-type":"spot","allocatable":{"cpu":"1930m","ephemeral-storage":"17Gi","memory":"3246Mi","pods":"17"}}
+```
+
+## Secrets
+
+I was too lazy to codify the Helm chart installs for AWS Secrets Manager integration so the bootstrapping is here:
+
+``` sh
+helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+helm repo add aws-secrets-manager https://aws.github.io/secrets-store-csi-driver-provider-aws
+helm install -n kube-system csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver --set syncSecret.enabled=true
+helm install -n kube-system secrets-provider-aws aws-secrets-manager/secrets-store-csi-driver-provider-aws
+```
+
+Any namespace that needs access to secrets needs a SecretProviderClass:
+
+``` sh
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: eks-aws-secrets
+  namespace: mynamespace
+spec:
+  provider: aws
+  parameters:
+    objects: |
+        - objectName: "eksSecret"
+          objectType: "secretsmanager"
 ```
 
 ## Environment
