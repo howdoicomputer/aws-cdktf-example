@@ -16,6 +16,7 @@ import { Manifest } from "../.gen/providers/kubectl/manifest";
 interface EnvironmentOptions {
   env: "development" | "staging" | "production";
   cidr: string;
+  blessedSourceIP: string;
   privateSubnets: string[];
   publicSubnets: string[];
   enableNatGateway: boolean;
@@ -68,7 +69,7 @@ export class Environment extends Construct {
       clusterName: options.env,
       clusterVersion: "1.28",
       clusterEndpointPublicAccess: true,
-      clusterEndpointPublicAccessCidrs: ["76.132.5.161/32"],
+      clusterEndpointPublicAccessCidrs: [options.blessedSourceIP],
       createCniIpv6IamPolicy: true,
       enableIrsa: true,
       subnetIds: Fn.tolist(this.vpc.privateSubnetsOutput),

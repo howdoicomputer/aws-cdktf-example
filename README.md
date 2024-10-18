@@ -2,18 +2,21 @@
 
 This project is intended to be a simple, toy reference architecture in AWS using the TypeScript version of [cdktf](https://github.com/hashicorp/terraform-cdk).
 
-It deploys:
+I originally started this project as a way to keep my AWS skills fresh while I was working with GCP. However, it ended up being used as a demo for an interview with a company called Polarsteps. I passed the interview but decided to stay in America as the housing crisis in the Netherlands as - and is - worse than here. This is why it's named "polarstomps" as I thought it'd be fun.
 
-* An EKS/Kubernetes cluster on AWS that has a managed node pool.
-* ArgoCD and Argo Rollouts as a deployment layer.
-* Karpenter as the autoscaling mechanism.
-* AWS LB Controller in order to use ALBs as ingresses for workloads.
-* The VPC CNI add-on for EKS for VPC connectivity.
-* The container observability add-on for EKS for sending logs to CloudWatch.
+This infrastructure repository deploys:
+
+* Three logical environments (dev/stage/prod) whose boundaries are defined by VPCs and clusters
+* Three EKS/Kubernetes clusters on AWS with each having a managed node pool
+* ArgoCD and Argo Rollouts for gitops pull based deployments
+* Karpenter as the autoscaling mechanism
+* AWS LB Controller in order to use ALBs as ingresses for workloads
+* The VPC CNI add-on for EKS for VPC connectivity
+* The container observability add-on for EKS for sending logs to CloudWatch
 
 # polarstomps App
 
-There is a Polarstomps application that is meant to be deployed to the infrastructure this repo sets up.
+There is a Polarstomps application that is meant to be deployed to the infrastructure this repo sets up. The application and deployment manifests are separate as that's adhering to best practices. The application itself is just a simple Golang webapp built with HTMX.
 
 It lives here: https://github.com/howdoicomputer/polarstomps
 The k8s manifests for it live here: https://github.com/howdoicomputer/polarstomps-argo
@@ -22,7 +25,7 @@ The k8s manifests for it live here: https://github.com/howdoicomputer/polarstomp
 
 The repository uses [devenv](https://devenv.sh/) as a way of setting up developer workspace dependencies. If you have devenv installed then CDing into the directory will take care of most CLI tools.
 
-Otherwise you'll need to install:
+Otherwise, you'll need to install:
 
 * cdktf CLI and general Nodejs stuff
 * helm
@@ -30,6 +33,18 @@ Otherwise you'll need to install:
 * kubectl
 * awscli
 * terraform
+
+If you're on a Mac then homebrew will handle most of those dependencies.
+
+### Credentials
+
+This project uses Terraform Cloud to handle storing Terraform state. You'd need to setup an account there and then use `cdktf login` to store credentials. Also, you will need to go into your Terraform Cloud project and turn on local execution for your pipeline. Also also, you need to change the Terraform organization specified in `main.ts` from 'howdoicomputer' to whatever yours is.
+
+Additionally, the AWS SDK and CLI requires AWS credentials to be set. I use root account credentials (be extremeley careful doing this - it's definitely not best practice to provision root account credentials as use them locall) and I set then in an `.envrc` that is loaded by [direnv](https://direnv.net/) when I CD into this directory. See the `sample-envrc`. `.envrc` is added to `.gitignore` to prevent you from committing your secrets.
+
+### Ingress IP Address
+
+In order to access the Kubernetes control plane you need to specify your source IPv4 address. This is mostly a hobby project so my source IP address is what I usually get from `whatismyipaddress.com`. Take your source address (or address range) and specify it via the `blessedSourceIP` option for the Environment constructor. If you're fancy you can use Tailscale here.
 
 ## Deploying
 
@@ -117,6 +132,7 @@ Example:
     const dev = new Environment(this, "development", {
       env: "development",
       cidr: "10.1.0.0/16",
+      blessedSourceIP: "CHANGEME",
       privateSubnets: ["10.1.1.0/24", "10.1.2.0/24", "10.1.3.0/24"],
       publicSubnets: ["10.1.4.0/24", "10.1.5.0/24", "10.1.6.0/24"],
       enableNatGateway: true,
@@ -154,5 +170,10 @@ Since the AWS LB Controller creates load balancers on its own per an application
 ## Production
 
 Please don't use this for production. If you want a reference for setting up EKS on AWS with all the bells and whistles then this might be able to help you out.
+
+## TODO
+
+* Create a hosted database within AWS and have the polarstomps application access it
+* There is a cdktf bug regarding modules referring to each other. This requires a hardcoding an ARN in the codebase. I should look more deeply into fixing this.
 
 ---

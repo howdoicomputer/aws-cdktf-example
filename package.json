@@ -20,7 +20,7 @@
     "node": ">=16.0"
   },
   "dependencies": {
-    "cdktf": "^0.19.2",
+    "cdktf": "^0.20.9",
     "cdktf-cli": "^0.19.2",
     "constructs": "^10.3.0"
   },
