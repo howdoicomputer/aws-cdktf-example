@@ -6,17 +6,17 @@ I originally started this project as a way to keep my AWS skills fresh while I w
 
 This infrastructure repository deploys:
 
-* Three logical environments (dev/stage/prod) whose boundaries are defined by VPCs and clusters
+* Three logical environments (dev/stage/prod) whose boundaries are defined by AWS primitives (VPCs, security groups, etc) and the EKS clusters themselves
 * Three EKS/Kubernetes clusters on AWS with each having a managed node pool
 * ArgoCD and Argo Rollouts for gitops pull based deployments
 * Karpenter as the autoscaling mechanism
 * AWS LB Controller in order to use ALBs as ingresses for workloads
-* The VPC CNI add-on for EKS for VPC connectivity
+* The VPC CNI add-on for EKS for VPC connectivity (automatic network interface management)
 * The container observability add-on for EKS for sending logs to CloudWatch
 
 # polarstomps App
 
-There is a Polarstomps application that is meant to be deployed to the infrastructure this repo sets up. The application and deployment manifests are separate as that's adhering to best practices. The application itself is just a simple Golang webapp built with HTMX.
+There is a Polarstomps application that is meant to be deployed to the infrastructure this repo sets up. The application and deployment manifests are separate as that's what adheres to best practices. The application itself is just a simple Golang webapp built with HTMX.
 
 It lives here: https://github.com/howdoicomputer/polarstomps
 The k8s manifests for it live here: https://github.com/howdoicomputer/polarstomps-argo
@@ -38,13 +38,13 @@ If you're on a Mac then homebrew will handle most of those dependencies.
 
 ### Credentials
 
-This project uses Terraform Cloud to handle storing Terraform state. You'd need to setup an account there and then use `cdktf login` to store credentials. Also, you will need to go into your Terraform Cloud project and turn on local execution for your pipeline. Also also, you need to change the Terraform organization specified in `main.ts` from 'howdoicomputer' to whatever yours is.
+This project uses Terraform Cloud to handle storing Terraform state. You'll need to setup an account there and then use `cdktf login` to cache credentials. Also, you will need to go into your Terraform Cloud project and turn on local execution for your pipeline. Also also, you need to change the Terraform organization specified in `main.ts` from 'howdoicomputer' to whatever yours is.
 
-Additionally, the AWS SDK and CLI requires AWS credentials to be set. I use root account credentials (be extremeley careful doing this - it's definitely not best practice to provision root account credentials as use them locall) and I set then in an `.envrc` that is loaded by [direnv](https://direnv.net/) when I CD into this directory. See the `sample-envrc`. `.envrc` is added to `.gitignore` to prevent you from committing your secrets.
+Additionally, the AWS SDK and CLI requires AWS credentials to be set. I use root account credentials (be extremeley careful doing this - it's definitely not best practice to provision root account credentials) and I set then in an `.envrc` that is loaded by [direnv](https://direnv.net/). See the `sample-envrc`. `.envrc` is added to `.gitignore` to prevent you from committing your secrets.
 
 ### Ingress IP Address
 
-In order to access the Kubernetes control plane you need to specify your source IPv4 address. This is mostly a hobby project so my source IP address is what I usually get from `whatismyipaddress.com`. Take your source address (or address range) and specify it via the `blessedSourceIP` option for the Environment constructor. If you're fancy you can use Tailscale here.
+In order to access the Kubernetes control plane you need to specify your source IPv4 address. This is a hobby project so my source IP address is what I usually get from `whatismyipaddress.com`. Take your source address (or address range) and specify it via the `blessedSourceIP` option for the Environment constructor.
 
 ## Deploying
 
@@ -85,7 +85,7 @@ In order to watch and/or debug autoscaling events:
 kubectl logs -f -n karpenter -l app.kubernetes.io/name=karpenter -c controller
 ```
 
-If autoscaling is working, you'll see events like this:
+If autoscaling is working, then you'll see events like this:
 
 ``` sh
 {"level":"INFO","time":"2023-12-14T08:24:51.212Z","logger":"controller.nodeclaim.lifecycle","message":"launched nodeclaim","commit":"5eda5c1","nodeclaim":"default-xbbj9","nodepool":"default","provider-id":"aws:///us-west-2b/i-001dcff2ad199d02d","instance-type":"t3.medium","zone":"us-west-2b","capacity-type":"spot","allocatable":{"cpu":"1930m","ephemeral-storage":"17Gi","memory":"3246Mi","pods":"17"}}
@@ -120,7 +120,7 @@ spec:
 
 ## Environment
 
-For this implementation, an environment is a logical construct that exists as a VPC with an EKS cluster within it. The cidrs are for the VPCs are `/16`s and each subnet is a `/24` with three private subnets and three public subnets. Each subnet public/private pair corresponds to an availability zone. The private subnets are where k8s worker nodes are deployed to and the public subnets are where load balancers live.
+For this implementation, an environment is a logical construct that exists as a VPC with an EKS cluster within it. The cidrs for the VPCs are `/16`s and each subnet is a `/24` with three private subnets and three public subnets. Each subnet public/private pair corresponds to an availability zone. The private subnets are where k8s worker nodes are deployed to and the public subnets are where load balancers live.
 
 The difference between a private and public subnet is whether or not there is a route to an internet gateway defined. Most of the setup around subnets are handled by the [VPC](https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest) terraform module.
 
@@ -140,10 +140,6 @@ Example:
       enableDnsHostnames: true,
     });
 ```
-
-## Terraform State Backend
-
-In `main.ts` I have Terraform Cloud configured as a remote backend and it's pointing to my personal organization. If you want to use this repo for anything then you'll need to configure that block.
 
 ## Cost Profile
 
