@@ -2,7 +2,7 @@
 
 This project is intended to be a simple, toy reference architecture in AWS using the TypeScript version of [cdktf](https://github.com/hashicorp/terraform-cdk).
 
-I originally started this project as a way to keep my AWS skills fresh while I was working with GCP. However, it ended up being used as a demo for an interview with a company called Polarsteps. I passed the interview but decided to stay in America as the housing crisis in the Netherlands as - and is - worse than here. This is why it's named "polarstomps" as I thought it'd be fun.
+I originally started this project as a way to keep my AWS skills fresh while I was working with GCP. However, it ended up being used as a demo for an interview with a company called Polarsteps. I passed the interview but decided to stay in America as the housing crisis in the Netherlands was - and is - worse than here. This is why it's named "polarstomps" as I thought it'd be fun.
 
 This infrastructure repository deploys:
 
