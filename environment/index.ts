@@ -140,7 +140,7 @@ export class Environment extends Construct {
 
     new VpcSecurityGroupIngressRule(this, "main_sg_ingress", {
       securityGroupId: this.mainSg.id,
-      cidrIpv4: "76.132.5.161/32",
+      cidrIpv4: options.blessedSourceIP,
       ipProtocol: "-1",
     });
 
